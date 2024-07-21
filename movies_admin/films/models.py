@@ -1,32 +1,13 @@
-import uuid
-
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-
-class TimeStampMixin(models.Model):
-    created_at = models.DateTimeField(
-        _("Created"), auto_now_add=True, blank=True, null=True
-    )
-    updated_at = models.DateTimeField(
-        _("Modified"), auto_now=True, blank=True, null=True
-    )
-
-    class Meta:
-        abstract = True
-
-
-class UUIDMixin(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    class Meta:
-        abstract = True
+from .mixins import TimeStampMixin, UUIDMixin
 
 
 class Genre(TimeStampMixin, UUIDMixin):
     name = models.TextField(_("Name"), unique=True)
-    description = models.TextField(_("Description"), blank=True, null=True)
+    description = models.TextField(_("Description"), blank=True)
 
     class Meta:  # pyright: ignore[]
         db_table = 'content"."genre'
@@ -43,14 +24,21 @@ class FilmWork(TimeStampMixin, UUIDMixin):
         TV_SHOW = "TS", _("Tv_show")
 
     title = models.TextField(_("Titile"))
-    description = models.TextField(_("Description"), blank=True, null=True)
-    creation_date = models.DateField(
-        _("Creation_date"), auto_now_add=True, blank=True, null=True
+    description = models.TextField(
+        _("Description"),
+        blank=True,
     )
-    file_path = models.TextField(_("File Path"), blank=True, null=True)
+    creation_date = models.DateField(
+        _("Creation_date"),
+        auto_now_add=True,
+        null=True,
+    )
+    file_path = models.TextField(
+        _("File Path"),
+        blank=True,
+    )
     rating = models.FloatField(
         _("Rating"),
-        blank=True,
         null=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
@@ -85,12 +73,23 @@ class GenreFilmWork(UUIDMixin):
         related_name="genre_film_works",
         verbose_name=_("Genre"),
     )
-    created_at = models.DateTimeField(_("Created"), auto_now_add=True)
+    created_at = models.DateTimeField(_("Created"), auto_now_add=True, null=True)
 
     class Meta:  # pyright: ignore[]
         db_table = 'content"."genre_film_work'
         verbose_name = _("GenreFilmWork")
         verbose_name_plural = _("GenreFilmWork")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genre", "film_work"], name="unique_film_genre"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["genre", "film_work"],
+                name="genre_film_work_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"M2M Table FilmWork film_work-{self.film_work}|genre-{self.genre}"
@@ -109,6 +108,11 @@ class Person(UUIDMixin, TimeStampMixin):
 
 
 class PersonFilmWork(UUIDMixin):
+    class RoleType(models.TextChoices):
+        ACTOR = "actor", _("Actor")
+        DIRECTOR = "director", _("Director")
+        WRITER = "writer", _("Writer")
+
     film_work = models.ForeignKey(
         FilmWork,
         verbose_name=_("Film work"),
@@ -121,13 +125,25 @@ class PersonFilmWork(UUIDMixin):
         on_delete=models.CASCADE,
         related_name="person_film_works",
     )
-    role = models.TextField(_("role"))
-    created_at = models.DateTimeField(auto_now_add=True)
+    role = models.CharField(_("role"), max_length=8, choices=RoleType.choices)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     class Meta:  # pyright: ignore[]
         db_table = 'content"."person_film_work'
         verbose_name = _("PersonFilmWork")
         verbose_name_plural = _("PersonFilmWorks")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["film_work_id", "person_id", "role"],
+                name="unique_film_person_role",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["film_work_id", "person_id", "role"],
+                name="film_work_person_role_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"PersonFilmWork {self.film_work}"

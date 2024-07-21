@@ -14,11 +14,21 @@ class LoadDataTest(unittest.TestCase):
     def _format_data(self, data: dict) -> dict:
         result = {}
         for kv in dict(data).items():
-            if kv[0] in ["created_at", "updated_at", "type"]:
+            if kv[0] in [
+                "created_at",
+                "updated_at",
+                "type",
+                "description",
+                "file_path",
+            ]:
                 if not kv[0] == "type":
                     result[kv[0]] = str(kv[1])[:19]
                 if kv[0] == "movie":
                     result[kv[0]] = "MV"
+                if kv[0] == "description" and kv[1] is None:
+                    result[kv[0]] = ""
+                if kv[0] == "file_path" and kv[1] is None:
+                    result[kv[0]] = ""
             else:
                 result[kv[0]] = str(kv[1])
         return result

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
+import os
 
 
 @dataclass
@@ -19,8 +20,8 @@ class LoadDataType:
 
 @dataclass
 class DSLType:
-    dbname: str = "movies_database"
-    user: str = "postgres"
-    password: str = "123qwe"
-    host: str = "127.0.0.1"
-    port: int = 5432
+    dbname: str = os.environ.get("DB_NAME", "movies_database")
+    user: str = os.environ.get("DB_USER", "postgres")
+    password: str = os.environ.get("DB_PASSWORD", "123qwe")
+    host: str = os.environ.get("DB_HOST", "127.0.0.1")
+    port: str = os.environ.get("DB_PORT", "5432")
